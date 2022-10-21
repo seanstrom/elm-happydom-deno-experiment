@@ -1,0 +1,20 @@
+{
+  "name": "elm-happydom-deno-experiment",
+  "version": "1.0.0",
+  "description": "",
+  "main": "compile-elm-to-bundle.js",
+  "type": "module",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "elm": "^0.19.1-5",
+    "elm-format": "^0.8.5",
+    "node-elm-compiler": "^5.0.6",
+    "rollup": "^2.56.3",
+    "rollup-pluginutils": "^2.8.2"
+  }
+}
