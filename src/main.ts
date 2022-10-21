@@ -1,5 +1,5 @@
 import { Window } from 'happy-dom';
-import Elm from '@src/main.elm.js';
+import { initApp, initElements } from '@src/main.elm.js';
 
 import { Application } from "https://deno.land/x/oak/mod.ts";
 import { createCustomElement } from 'https://cdn.skypack.dev/ficusjs@5/custom-element';
@@ -44,67 +44,6 @@ function patchWindow(window) {
 }
 
 
-function initElements({ platform }) {
-    createCustomElement('x-app', {
-        renderer,
-        async created() {
-            const app = new Application();
-
-            setTimeout(() => {
-                this.emit("app-init", payload => {
-                    this.emit("app-db-payload", payload);
-                });
-            }, 0);
-
-            app.use(async (ctx) => {
-                const body = await new Promise((resolve, reject) => {
-                    this.emit("app-request", payload => {
-                        resolve(payload);
-                    });
-                });
-
-                ctx.response.body = body;
-            });
-
-            await app.listen({ port: 8000 });
-        },
-        render() {
-            return h``;
-        }
-    })
-}
-
-
-function initApp({ platform }) {
-    const app = Elm().Main.init({
-        node: window.document.getElementById('root')
-    });
-
-    const dispatch = async message => {
-        switch (message.params.type) {
-            case "query": {
-                if (message.params.kind === 'todo') {
-                    let payload = await platform.models.Todo.all();
-                    let response = { context: message.context, payload };
-                    if (message.context.dbHandle) {
-                        message.context.dbHandle(response);
-                    }
-                }
-                break;
-            }
-            case "response": {
-                if (message.context.requestHandle) {
-                    message.context.requestHandle(message.params.payload);
-                }
-                break;
-            }
-        }
-    }
-
-    app.ports.outbox.subscribe(dispatch);
-}
-
-
 function main() {
     const window = patchWindow(new Window());
 
@@ -123,6 +62,14 @@ function main() {
     const platform = {
         db: database,
         models: { Todo },
+        utils: {
+            Application,
+            Element: {
+                html: h,
+                renderer,
+                create: createCustomElement,
+            }
+        },
     };
 
     const html = `
@@ -139,8 +86,10 @@ function main() {
     `;
 
     window.document.write(html);
-    initElements({ platform });
-    initApp({ platform });
+    (function () {
+        initElements({ window, platform });
+        initApp({ window, platform });
+    }).call(window);
 }
 
 
