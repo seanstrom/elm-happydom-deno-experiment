@@ -1,4 +1,4 @@
-port module Main exposing (..)
+port module Server exposing (..)
 
 import Browser
 import Dict exposing (Dict)
@@ -7,6 +7,7 @@ import Html.Attributes exposing (..)
 import Html.Events exposing (..)
 import Json.Decode as Decode exposing (Decoder)
 import Json.Encode as Encode
+import Shared exposing (Todo, todoDecoder, todoEncoder)
 
 
 
@@ -61,11 +62,6 @@ type alias Query =
 type alias Response =
     List Todo
 
-
-type alias Todo =
-    { id : Int, name : String }
-
-
 type alias Model =
     { sharedContext : ContextDict }
 
@@ -111,29 +107,20 @@ queryEncoder params =
         ]
 
 
-responseEncoder : Response -> Params
-responseEncoder params =
+jsonResponseEncoder : (a -> Encode.Value) -> a -> Params
+jsonResponseEncoder helperEncoder params =
     Encode.object
-        [ ( "payload", Encode.list todoEncoder params )
-        , ( "type", Encode.string "response" )
+        [ ( "payload", helperEncoder params )
+        , ( "type", Encode.string "json-response" )
         ]
 
 
-todoDecoder : Decoder Todo
-todoDecoder =
-    Decode.map2
-        Todo
-        (Decode.field "id" Decode.int)
-        (Decode.field "name" Decode.string)
-
-
-todoEncoder : Todo -> Encode.Value
-todoEncoder todo =
+htmlResponseEncoder : (a -> Encode.Value) -> a -> Params
+htmlResponseEncoder helperEncoder params =
     Encode.object
-        [ ( "id", Encode.int todo.id )
-        , ( "name", Encode.string todo.name )
+        [ ( "payload", helperEncoder params )
+        , ( "type", Encode.string "html-response" )
         ]
-
 
 
 -- Event Attributes
@@ -166,9 +153,18 @@ query context params =
     { params = queryEncoder params, context = context }
 
 
-response : Context -> Response -> OutMsg Params
-response context params =
-    { params = responseEncoder params, context = context }
+jsonResponse : Context -> (response -> Encode.Value) -> response -> OutMsg Params
+jsonResponse context encoder params =
+    { params = jsonResponseEncoder encoder params
+    , context = context
+    }
+
+
+htmlResponse : Context -> (response -> Encode.Value) -> response -> OutMsg Params
+htmlResponse context encoder params =
+    { params = htmlResponseEncoder encoder params
+    , context = context
+    }
 
 
 
@@ -196,7 +192,8 @@ update msg model =
         ServerRequest requestHandle ->
             let
                 hasDbHandle =
-                    Dict.get "dbHandle" model.sharedContext /= Nothing
+                    Dict.get "dbHandle" model.sharedContext
+                        /= Nothing
             in
             if hasDbHandle then
                 let
@@ -247,7 +244,10 @@ update msg model =
                 |> Maybe.andThen
                     (\localContext ->
                         Just
-                            ( model, outbox <| response localContext payload )
+                            ( model
+                            , outbox <|
+                                htmlResponse localContext (Encode.list todoEncoder) payload
+                            )
                     )
                 |> Maybe.withDefault ( model, Cmd.none )
 

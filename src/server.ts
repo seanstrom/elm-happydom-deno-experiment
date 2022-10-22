@@ -1,5 +1,5 @@
 import { Window } from 'happy-dom';
-import { initApp, initElements } from '@src/main.elm.js';
+import { initApp, initElements } from '@src/server.elm.js';
 
 import { Application } from "https://deno.land/x/oak/mod.ts";
 import { createCustomElement } from 'https://cdn.skypack.dev/ficusjs@5/custom-element';

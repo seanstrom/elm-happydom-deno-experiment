@@ -1,9 +1,9 @@
 import elm from './utils/elm-rollup-plugin'
 
-export default {
-    input: 'src/main.elm.js',
+const clientConfig = {
+    input: 'src/client.elm.js',
     output: {
-        file: 'dist/main.elm.js',
+        file: 'dist/client.elm.js',
         format: 'es',
         exports: 'auto',
     },
@@ -11,3 +11,20 @@ export default {
         elm({}),
     ]
 };
+
+const serverConfig = {
+    input: 'src/server.elm.js',
+    output: {
+        file: 'dist/server.elm.js',
+        format: 'es',
+        exports: 'auto',
+    },
+    plugins: [
+        elm({}),
+    ]
+};
+
+export default [
+    serverConfig,
+    clientConfig
+];

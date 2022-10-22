@@ -1,7 +1,8 @@
 {
   "imports": {
     "https://deno.land/std@0.159.0/node/vm.ts": "./src/vm.ts",
-    "@src/main.elm.js": "./dist/main.elm.js",
+    "@src/server.elm.js": "./dist/server.elm.js",
+    "@src/client.elm.js": "./dist/client.elm.js",
     "@src/": "./src/",
     "happy-dom": "npm:happy-dom"
   },
