@@ -1,10 +1,21 @@
 {
   "imports": {
-    "https://deno.land/std@0.159.0/node/vm.ts": "./src/vm.ts",
     "@src/server.elm.js": "./dist/server.elm.js",
     "@src/client.elm.js": "./dist/client.elm.js",
     "@src/": "./src/",
-    "happy-dom": "npm:happy-dom"
+
+    "https://deno.land/std@0.159.0/node/vm.ts": "./src/vm.ts",
+
+    "happy-dom": "npm:happy-dom",
+    "ficus/": "https://cdn.skypack.dev/ficusjs@5/",
+    "renderers/": "https://cdn.skypack.dev/@ficusjs/renderers@5/",
+    "denodb/": "https://deno.land/x/denodb@v1.0.40/",
+    "oak/": "https://deno.land/x/oak@v11.1.0/",
+
+    "@rollup/plugin-alias": "npm:@rollup/plugin-alias",
+    "node:path": "node:path",
+    "node-elm-compiler": "npm:node-elm-compiler",
+    "rollup-pluginutils": "npm:rollup-pluginutils"
   },
   "scopes": {}
 }
