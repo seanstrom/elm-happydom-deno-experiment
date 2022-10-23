@@ -7,7 +7,8 @@ import Html.Attributes exposing (..)
 import Html.Events exposing (..)
 import Json.Decode as Decode exposing (Decoder)
 import Json.Encode as Encode
-import Shared exposing (Todo, todoDecoder, todoEncoder)
+import Maybe exposing (withDefault)
+import Shared exposing (todoDecoder, todoEncoder)
 
 
 
@@ -44,23 +45,25 @@ type alias ContextDict =
     Dict String Handle
 
 
+type alias OutMsg content =
+    { content : content
+    , context : Context
+    }
+
+
 port outbox : OutMsg Params -> Cmd msg
-
-
-type alias OutMsg params =
-    { params : params, context : Context }
 
 
 
 -- Domains
 
 
-type alias Query =
-    { operation : String, kind : String }
+type alias Query params =
+    { entity : String
+    , operation : String
+    , params : Codec params
+    }
 
-
-type alias Response =
-    List Todo
 
 type alias Model =
     { sharedContext : ContextDict }
@@ -68,6 +71,29 @@ type alias Model =
 
 
 -- Decoders
+
+
+type alias Encoder a =
+    a -> Encode.Value
+
+
+type alias Codec a =
+    { data : a
+    , decoder : Decoder a
+    , encoder : Encoder a
+    }
+
+
+encode : Encoder a -> a -> Encode.Value
+encode encoder data =
+    encoder data
+
+
+decode : a -> Decoder a -> Decode.Value -> a
+decode default decoder value =
+    Decode.decodeValue decoder value
+        |> Result.toMaybe
+        |> withDefault default
 
 
 eventDecoder : Decoder a -> Decoder a
@@ -94,15 +120,16 @@ outMsgEncoder : OutMsg Params -> Encode.Value
 outMsgEncoder outMsg =
     Encode.object
         [ ( "context", outMsg.context )
-        , ( "params", outMsg.params )
+        , ( "params", outMsg.content )
         ]
 
 
-queryEncoder : Query -> Params
-queryEncoder params =
+queryEncoder : Query params -> Params
+queryEncoder info =
     Encode.object
-        [ ( "operation", Encode.string params.operation )
-        , ( "kind", Encode.string params.kind )
+        [ ( "entity", Encode.string info.entity )
+        , ( "operation", Encode.string info.operation )
+        , ( "params", encode info.params.encoder info.params.data )
         , ( "type", Encode.string "query" )
         ]
 
@@ -123,6 +150,7 @@ htmlResponseEncoder helperEncoder params =
         ]
 
 
+
 -- Event Attributes
 
 
@@ -136,33 +164,33 @@ onAppInit msg =
     on "app-init" (Decode.map msg (eventDecoder handleDecoder))
 
 
-onAppDbPayload : (Context -> List Todo -> msg) -> Attribute msg
+onAppDbPayload : (Context -> Decode.Value -> msg) -> Attribute msg
 onAppDbPayload msg =
     on "app-db-payload" <|
         Decode.map2 msg
-            (contextDecoder <| Decode.value)
-            (payloadDecoder <| Decode.list todoDecoder)
+            (contextDecoder Decode.value)
+            (payloadDecoder Decode.value)
 
 
 
 -- Taaks
 
 
-query : Context -> Query -> OutMsg Params
+query : Context -> Query a -> OutMsg Params
 query context params =
-    { params = queryEncoder params, context = context }
+    { content = queryEncoder params, context = context }
 
 
 jsonResponse : Context -> (response -> Encode.Value) -> response -> OutMsg Params
 jsonResponse context encoder params =
-    { params = jsonResponseEncoder encoder params
+    { content = jsonResponseEncoder encoder params
     , context = context
     }
 
 
 htmlResponse : Context -> (response -> Encode.Value) -> response -> OutMsg Params
 htmlResponse context encoder params =
-    { params = htmlResponseEncoder encoder params
+    { content = htmlResponseEncoder encoder params
     , context = context
     }
 
@@ -180,10 +208,14 @@ init _ =
 -- Update
 
 
+type NewTodoParams
+    = NewTodo { name : String }
+
+
 type Msg
     = ServerRequest Handle
     | DatabaseConnection Handle
-    | DatabasePayload Context (List Todo)
+    | DatabasePayload Context Handle
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -202,8 +234,36 @@ update msg model =
                             |> Dict.insert "requestHandle" requestHandle
                             |> Encode.dict identity identity
 
+                    paramsEncoder : Encoder NewTodoParams
+                    paramsEncoder (NewTodo info) =
+                        Encode.object
+                            [ ( "name", Encode.string info.name ) ]
+
+                    paramsDecoder : Decoder NewTodoParams
+                    paramsDecoder =
+                        let
+                            toInfo name =
+                                NewTodo { name = name }
+                        in
+                        Decode.map toInfo (Decode.field "name" Decode.string)
+
+                    data : NewTodoParams
+                    data =
+                        NewTodo { name = "New Todo" }
+
+                    paramsCodec : Codec NewTodoParams
+                    paramsCodec =
+                        { data = data
+                        , decoder = paramsDecoder
+                        , encoder = paramsEncoder
+                        }
+
+                    params : Query NewTodoParams
                     params =
-                        { operation = "all", kind = "todo" }
+                        { operation = "new"
+                        , entity = "todo"
+                        , params = paramsCodec
+                        }
                 in
                 ( model, outbox <| query localContext params )
 
@@ -219,6 +279,11 @@ update msg model =
 
         DatabasePayload encodedContext payload ->
             let
+                decodedPayload =
+                    Decode.decodeValue (Decode.list todoDecoder) payload
+                        |> Result.toMaybe
+                        |> Maybe.withDefault []
+
                 decodedContext =
                     Decode.decodeValue
                         (Decode.dict handleDecoder)
@@ -246,7 +311,7 @@ update msg model =
                         Just
                             ( model
                             , outbox <|
-                                htmlResponse localContext (Encode.list todoEncoder) payload
+                                htmlResponse localContext (Encode.list todoEncoder) decodedPayload
                             )
                     )
                 |> Maybe.withDefault ( model, Cmd.none )

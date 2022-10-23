@@ -4,7 +4,7 @@ import Browser
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
-import Json.Decode as Decode exposing (Decoder)
+import Json.Decode as Decode
 import Shared exposing (Todo, todoDecoder)
 
 
@@ -32,7 +32,7 @@ init preload =
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
-update msg model =
+update _ model =
     ( model, Cmd.none )
 
 

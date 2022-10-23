@@ -1,30 +1,55 @@
-import elm from './utils/elm-rollup-plugin'
+import alias from '@rollup/plugin-alias';
+import elm from './utils/elm-rollup-plugin.js';
 
-const clientConfig = {
+
+const elmClientConfig = {
     input: 'src/client.elm.js',
     output: {
+        sourcemap: true,
         file: 'dist/client.elm.js',
         format: 'es',
         exports: 'auto',
     },
     plugins: [
         elm({}),
-    ]
+    ],
 };
 
-const serverConfig = {
+
+const elmServerConfig = {
     input: 'src/server.elm.js',
     output: {
+        sourcemap: true,
         file: 'dist/server.elm.js',
         format: 'es',
         exports: 'auto',
     },
     plugins: [
         elm({}),
-    ]
+    ],
 };
 
+
+const clientPlatformConfig = {
+    input: 'src/client.platform.js',
+    output: {
+        file: 'dist/client.platform.js',
+        format: 'es',
+        exports: 'auto',
+    },
+    plugins: [
+        elm({}),
+        alias({
+            entries: [
+                { find: '@src/client.elm.js', replacement: './src/client.elm.js' }
+            ]
+        }),
+    ],
+};
+
+
 export default [
-    serverConfig,
-    clientConfig
+    elmServerConfig,
+    elmClientConfig,
+    clientPlatformConfig,
 ];
