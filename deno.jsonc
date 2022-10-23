@@ -1,11 +1,24 @@
 {
-  "compilerOptions": {
-    "lib": [
-      "deno.ns",
-      "dom",
-      "dom.iterable",
-      "dom.asynciterable"
-    ]
-  },
-  "importMap": "./import_map.json"
+    "compilerOptions": {
+        "lib": [
+            "deno.ns",
+            "dom",
+            "dom.iterable",
+            "dom.asynciterable"
+        ]
+    },
+    "importMap": "./import_map.json",
+    "fmt": {
+        "files": {
+            "include": ["src/", "deno.jsonc"],
+            "exclude": ["dist/"]
+        },
+        "options": {
+            "useTabs": false,
+            "lineWidth": 120,
+            "indentWidth": 4,
+            "singleQuote": false,
+            "proseWrap": "preserve"
+        }
+    }
 }
