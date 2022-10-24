@@ -33,6 +33,7 @@ const elmServerConfig = {
 const clientPlatformConfig = {
     input: 'src/client.platform.js',
     output: {
+        sourcemap: true,
         file: 'dist/client.platform.js',
         format: 'es',
         exports: 'auto',
