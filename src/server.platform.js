@@ -1,5 +1,5 @@
 import { Window } from "happy-dom";
-import { Application } from "oak/mod.ts";
+import { Application, send } from "oak/mod.ts";
 import { html as h, renderer } from "renderers/htm.js";
 import { createCustomElement } from "ficus/custom-element.js";
 import { Database, DataTypes, Model, SQLite3Connector } from "denodb/mod.ts";
@@ -17,6 +17,7 @@ class Todo extends Model {
         name: DataTypes.STRING,
     };
 }
+
 
 function patchWindow(window) {
     /**
@@ -42,6 +43,7 @@ function patchWindow(window) {
     return window;
 }
 
+
 export function initElements(params) {
     const platform = params.platform;
     platform.utils.Element.create("x-app", {
@@ -55,49 +57,65 @@ export function initElements(params) {
                 });
             }, 0);
 
-            app.use(async (ctx) => {
-                console.log("app request", ctx)
-                const response = await new Promise((resolve, _reject) => {
-                    this.emit(
-                        "app-request",
-                        ({ payload, responseType }) => {
-                            resolve({ payload, responseType });
-                        },
-                    );
-                });
+            app.use(async (ctx, next) => {
+                console.log(ctx.request.url);
 
-                const body = (async () => {
-                    switch (response.responseType) {
-                        case "html": {
-                            const script = await Deno.readTextFile("./dist/client.platform.js");
-                            ctx.response.headers.set("Content-Type", "text/html");
-                            return `
-                                <html>
-                                    <head>
-                                        <title>Todo App</title>
-                                    </head>
-                                    <body>
-                                        <main id="root"></main>
-                                    </body>
-                                    <script type="module">
-                                        ${script}
+                if (ctx.request.url.pathname.indexOf("/dist/") === 0) {
+                    try {
+                        const [_fileDir, fileName] =
+                            ctx.request.url.pathname.split("/dist/");
 
-                                        main(${JSON.stringify(response.payload)});
-                                    </script>
-                                </html>
-                            `;
-                        }
-                        case "json": {
-                            ctx.response.headers.set("Content-Type", "application/json");
-                            return response.payload;
-                        }
-                        default: {
-                            return response.payload;
-                        }
+                        await send(ctx, fileName, {
+                            root: `${Deno.cwd()}/dist`
+                        });
+                    } catch {
+                        await next();
                     }
-                });
+                } else {
 
-                ctx.response.body = body;
+                    const response = await new Promise((resolve, _reject) => {
+                        this.emit(
+                            "app-request",
+                            ({ payload, responseType }) => {
+                                resolve({ payload, responseType });
+                            },
+                        );
+                    });
+
+                    console.log(response);
+
+                    const body = (() => {
+                        switch (response.responseType) {
+                            case "html": {
+                                ctx.response.headers.set("Content-Type", "text/html");
+                                return `
+                                    <html>
+                                        <head>
+                                            <title>Todo App</title>
+                                        </head>
+                                        <body>
+                                            <main id="root"></main>
+                                        </body>
+                                        <script>
+                                            window['PRELOAD'] = ${JSON.stringify(response.payload)};
+                                        </script>
+                                        <script type="module" src="/dist/client.platform.js"></script>
+                                    </html>
+                                `;
+                            }
+                            case "json": {
+                                ctx.response.headers.set("Content-Type", "application/json");
+                                return response.payload;
+                            }
+                            default: {
+                                return response.payload;
+                            }
+                        }
+                    });
+
+                    ctx.response.body = body;
+                    next();
+                }
             });
 
             await app.listen({ port: 8000 });
@@ -108,13 +126,13 @@ export function initElements(params) {
     });
 }
 
+
 export function initApp({ window, platform }) {
     const app = Elm(window).Server.init({
         node: window.document.getElementById("root"),
     });
 
     const dispatch = async (message) => {
-        console.log(message);
         switch (message.content.type) {
             case "query": {
                 const payload = await (async () => {
@@ -137,7 +155,8 @@ export function initApp({ window, platform }) {
                     }
                 })();
 
-                console.log(payload, message.context);
+                console.log("Message:", message);
+                console.log("Response Payload: ", payload);
 
                 if (payload) {
                     if (message.context.dbHandle) {
@@ -174,6 +193,7 @@ export function initApp({ window, platform }) {
 
     app.ports.outbox.subscribe(dispatch);
 }
+
 
 function main() {
     const window = patchWindow(new Window());
@@ -222,5 +242,6 @@ function main() {
         initApp({ window, platform });
     }).call(window);
 }
+
 
 main();

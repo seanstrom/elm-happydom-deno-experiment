@@ -8,7 +8,7 @@ import Html.Events exposing (..)
 import Json.Decode as Decode exposing (Decoder)
 import Json.Encode as Encode
 import Maybe exposing (withDefault)
-import Shared exposing (todoDecoder, todoEncoder)
+import Shared exposing (Todo, todoDecoder, todoEncoder)
 
 
 
@@ -212,6 +212,10 @@ type NewTodoParams
     = NewTodo { name : String }
 
 
+type AllTodoParams
+    = AllTodo {}
+
+
 type Msg
     = ServerRequest Handle
     | DatabaseConnection Handle
@@ -258,14 +262,40 @@ update msg model =
                         , encoder = paramsEncoder
                         }
 
-                    params : Query NewTodoParams
-                    params =
+                    newParams : Query NewTodoParams
+                    newParams =
                         { operation = "new"
                         , entity = "todo"
                         , params = paramsCodec
                         }
+
+                    allTodos : AllTodoParams
+                    allTodos =
+                        AllTodo {}
+
+                    allTodoDecoder : Decoder AllTodoParams
+                    allTodoDecoder =
+                        Decode.map AllTodo (Decode.succeed {})
+
+                    allTodoEncoder : Encoder AllTodoParams
+                    allTodoEncoder _ =
+                        Encode.object []
+
+                    allParamsCodec : Codec AllTodoParams
+                    allParamsCodec =
+                        { data = allTodos
+                        , decoder = allTodoDecoder
+                        , encoder = allTodoEncoder
+                        }
+
+                    allParams : Query AllTodoParams
+                    allParams =
+                        { operation = "all"
+                        , entity = "todo"
+                        , params = allParamsCodec
+                        }
                 in
-                ( model, outbox <| query localContext params )
+                ( model, outbox <| query localContext allParams )
 
             else
                 ( model, Cmd.none )
