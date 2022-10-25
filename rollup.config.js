@@ -11,7 +11,7 @@ const elmClientConfig = {
         exports: 'auto',
     },
     plugins: [
-        elm({}),
+        elm({ compiler: { optimize: true }}),
     ],
 };
 
@@ -25,7 +25,7 @@ const elmServerConfig = {
         exports: 'auto',
     },
     plugins: [
-        elm({}),
+        elm({ compiler: { optimize: true }}),
     ],
 };
 
@@ -39,7 +39,7 @@ const clientPlatformConfig = {
         exports: 'auto',
     },
     plugins: [
-        elm({}),
+        elm({ compiler: { optimize: true }}),
         alias({
             entries: [
                 { find: '@src/client.elm.js', replacement: './src/client.elm.js' }

@@ -7,6 +7,7 @@ const defaultOptions = {
     exclude: [],
     compiler: {
         debug: false,
+        optimize: false,
     },
 };
 
