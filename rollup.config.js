@@ -2,6 +2,9 @@ import alias from '@rollup/plugin-alias';
 import elm from './utils/elm-rollup-plugin.js';
 
 
+const optimize = false;
+
+
 const elmClientConfig = {
     input: 'src/client.elm.js',
     output: {
@@ -11,7 +14,7 @@ const elmClientConfig = {
         exports: 'auto',
     },
     plugins: [
-        elm({ compiler: { optimize: true }}),
+        elm({ compiler: { optimize: false }}),
     ],
 };
 
@@ -25,7 +28,20 @@ const elmServerConfig = {
         exports: 'auto',
     },
     plugins: [
-        elm({ compiler: { optimize: true }}),
+        elm({ compiler: { optimize: optimize }}),
+    ],
+};
+
+const elmTestServerConfig = {
+    input: 'src/worker.elm.js',
+    output: {
+        sourcemap: true,
+        file: 'dist/worker.elm.js',
+        format: 'es',
+        exports: 'auto',
+    },
+    plugins: [
+        elm({ compiler: { optimize: optimize }}),
     ],
 };
 
@@ -39,7 +55,7 @@ const clientPlatformConfig = {
         exports: 'auto',
     },
     plugins: [
-        elm({ compiler: { optimize: true }}),
+        elm({ compiler: { optimize: optimize }}),
         alias({
             entries: [
                 { find: '@src/client.elm.js', replacement: './src/client.elm.js' }
@@ -51,6 +67,7 @@ const clientPlatformConfig = {
 
 export default [
     elmServerConfig,
+    elmTestServerConfig,
     elmClientConfig,
     clientPlatformConfig,
 ];
