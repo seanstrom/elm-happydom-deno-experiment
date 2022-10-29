@@ -11,9 +11,11 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
+    "@elm-tooling/elm-language-server": "^2.5.2",
     "@rollup/plugin-alias": "^4.0.2",
     "elm": "^0.19.1-5",
     "elm-format": "^0.8.5",
+    "elm-test": "^0.19.1-revision10",
     "node-elm-compiler": "^5.0.6",
     "rollup": "^2.56.3",
     "rollup-pluginutils": "^2.8.2"
